@@ -3,7 +3,6 @@ const serverless = require("serverless-http");
 require('dotenv').config();
 const cors = require('cors')
 const axios = require('axios')
-// const queryString = require('query-string')
 const jwt = require('jsonwebtoken')
 const cookieParser = require('cookie-parser')
 
@@ -23,20 +22,7 @@ const config = {
     postUrl: 'https://jsonplaceholder.typicode.com/posts', // TODO get generic yahoo fantasy api url
 }
 
-// const authParams = queryString.stringify({
-//     client_id: config.clientId,
-//     redirect_uri: config.redirectUrl,
-//     response_type: 'code',
-// })
-// const getTokenParams = (code) =>
-//     queryString.stringify({
-//         client_id: config.clientId,
-//         code,
-//         grant_type: 'authorization_code',
-//         redirect_uri: 'oob',
-//     })
-
-const authParams = `client_id=${config.clientId}&redirect_uri=${config.redirectUrl}&response_type=code`;
+const authParams = `client_id=${config.clientId}&redirect_uri=${config.redirectUrl}&response_type=code&scope=fspt-w`;
 
 const getTokenParams = (code) => {
     return `client_id=${config.clientId}&code=${code}&grant_type=authorization_code&redirect_uri=oob`;
