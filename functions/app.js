@@ -1,10 +1,14 @@
 import 'dotenv/config'
 import express from 'express'
+import serverless from 'serverless-http'
 import cors from 'cors'
 import axios from 'axios'
 import queryString from 'query-string'
 import jwt from 'jsonwebtoken'
 import cookieParser from 'cookie-parser'
+
+const app = express();
+const router = express.Router();
 
 const config = {
     clientId: process.env.YAHOO_CLIENT_ID,
@@ -32,8 +36,6 @@ const getTokenParams = (code) =>
         redirect_uri: 'oob',
     })
 
-const app = express()
-
 // Resolve CORS
 app.use(
     // TODO FIX THIS TO ACTUALLY ONLY WORK FOR OUR DOMAIN
@@ -54,6 +56,9 @@ cors({
 
 // Parse Cookie
 app.use(cookieParser())
+
+// Enable netlify deploys
+app.use("/.netlify/functions/app", router);
 
 // Verify auth
 const auth = (req, res, next) => {
@@ -137,3 +142,5 @@ app.get('/user/posts', auth, async (_, res) => {
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
+
+export default serverless(app);
