@@ -79,13 +79,17 @@ const auth = (req, res, next) => {
     }
 }
 
-app.get('/auth/url', (_, res) => {
+router.get("/", (req, res) => {
+    res.send("App is running..");
+});
+
+router.get('/auth/url', (_, res) => {
     res.json({
         url: `${config.authUrl}?${authParams}`,
     })
 })
 
-app.get('/auth/token', async (req, res) => {
+router.get('/auth/token', async (req, res) => {
     const { code } = req.query
     if (!code) return res.status(400).json({ message: 'Authorization code must be provided' })
     try {
@@ -114,7 +118,7 @@ app.get('/auth/token', async (req, res) => {
 })
 
 // TODO examine + test/verify it works
-app.get('/auth/logged_in', (req, res) => {
+router.get('/auth/logged_in', (req, res) => {
     try {
         // Get token from cookie
         const token = req.cookies.token
@@ -130,13 +134,13 @@ app.get('/auth/logged_in', (req, res) => {
 })
 
 // TODO examine + test/verify it works
-app.post('/auth/logout', (_, res) => {
+router.post('/auth/logout', (_, res) => {
     // clear cookie
     res.clearCookie('token').json({ message: 'Logged out' })
 })
 
 // TODO this is placeholder for calls 1-N of yahoo data, config.postUrl will be changed to config.yahooFantasyApi base url
-app.get('/user/posts', auth, async (_, res) => {
+router.get('/user/posts', auth, async (_, res) => {
     try {
         const { data } = await axios.get(config.postUrl)
         res.json({ posts: data?.slice(0, 5) })
@@ -145,8 +149,8 @@ app.get('/user/posts', auth, async (_, res) => {
     }
 })
 
-const PORT = process.env.PORT || 3000
-app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
-
+// const PORT = process.env.PORT || 3000
+// app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
+module.exports = app;
 module.exports.handler = serverless(app);
 
