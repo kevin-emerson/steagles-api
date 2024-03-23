@@ -1,7 +1,6 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "type": "module",
   "module": "index.js",
   "description": "",
   "scripts": {

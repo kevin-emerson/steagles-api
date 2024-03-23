@@ -1,11 +1,11 @@
-import 'dotenv/config'
-import express from 'express'
-import serverless from 'serverless-http'
-import cors from 'cors'
-import axios from 'axios'
-import queryString from 'query-string'
-import jwt from 'jsonwebtoken'
-import cookieParser from 'cookie-parser'
+const express = require("express");
+const serverless = require("serverless-http");
+require('dotenv').config();
+const cors = require('cors')
+const axios = require('axios')
+// const queryString = require('query-string')
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 
 const app = express();
 const router = express.Router();
@@ -23,18 +23,24 @@ const config = {
     postUrl: 'https://jsonplaceholder.typicode.com/posts', // TODO get generic yahoo fantasy api url
 }
 
-const authParams = queryString.stringify({
-    client_id: config.clientId,
-    redirect_uri: config.redirectUrl,
-    response_type: 'code',
-})
-const getTokenParams = (code) =>
-    queryString.stringify({
-        client_id: config.clientId,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: 'oob',
-    })
+// const authParams = queryString.stringify({
+//     client_id: config.clientId,
+//     redirect_uri: config.redirectUrl,
+//     response_type: 'code',
+// })
+// const getTokenParams = (code) =>
+//     queryString.stringify({
+//         client_id: config.clientId,
+//         code,
+//         grant_type: 'authorization_code',
+//         redirect_uri: 'oob',
+//     })
+
+const authParams = `client_id=${config.clientId}&redirect_uri=${config.redirectUrl}&response_type=code`;
+
+const getTokenParams = (code) => {
+    return `client_id=${config.clientId}&code=${code}&grant_type=authorization_code&redirect_uri=oob`;
+}
 
 // Resolve CORS
 app.use(
@@ -140,7 +146,7 @@ app.get('/user/posts', auth, async (_, res) => {
 })
 
 const PORT = process.env.PORT || 3000
-
 app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
 
-export default serverless(app);
+module.exports.handler = serverless(app);
+
