@@ -9,6 +9,8 @@ const cookieParser = require('cookie-parser')
 const app = express();
 const router = express.Router();
 
+//const parseTeamData = require("../getTeams.js")
+
 const config = {
     clientId: process.env.YAHOO_CLIENT_ID,
     clientSecret: process.env.YAHOO_CLIENT_SECRET,
@@ -19,7 +21,7 @@ const config = {
     clientUrl: process.env.CLIENT_URL,
     tokenSecret: process.env.TOKEN_SECRET,
     tokenExpiration: 3600,
-    postUrl: 'https://jsonplaceholder.typicode.com/posts', // TODO get generic yahoo fantasy api url
+    fantasyUrl: 'https://fantasysports.yahooapis.com', // TODO get generic yahoo fantasy api url
 }
 
 const authParams = `client_id=${config.clientId}&redirect_uri=${config.redirectUrl}&response_type=code&scope=fspt-w`;
@@ -69,13 +71,13 @@ router.get("/", (req, res) => {
     res.send("App is running..");
 });
 
-router.get('/auth/url', (_, res) => {
+app.get('/auth/url', (_, res) => {
     res.json({
         url: `${config.authUrl}?${authParams}`,
     })
 })
 
-router.get('/auth/token', async (req, res) => {
+app.get('/auth/token', async (req, res) => {
     const { code } = req.query
     if (!code) return res.status(400).json({ message: 'Authorization code must be provided' })
     try {
@@ -135,8 +137,30 @@ router.get('/user/posts', auth, async (_, res) => {
     }
 })
 
-// const PORT = process.env.PORT || 3000
-// app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
-module.exports = app;
-module.exports.handler = serverless(app);
+const parseTeamData = (data) => {
+    let teams = []
+
+
+
+    return teams
+}
+
+// TODO transform data to better structured json 
+app.get('/teams', async (req, res) => {
+    const authHeader = req.header('Authorization');
+
+    const {data} = await axios.get(`${config.fantasyUrl}/fantasy/v2/users;use_login=1/games;game_keys=nfl/teams?format=json`, {
+        headers: {
+            'Authorization': authHeader
+        }
+    })
+
+    const teamData = parseTeamData(data)
+    res.json(data)
+})
+
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
+// module.exports = app;
+// module.exports.handler = serverless(app);
 
