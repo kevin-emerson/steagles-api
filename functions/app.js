@@ -74,7 +74,7 @@ router.get('/auth/url', (_, res) => {
     })
 })
 
-app.get('/auth/token', async (req, res) => {
+router.get('/auth/token', async (req, res) => {
     const { code } = req.query
     if (!code) return res.status(400).json({ message: 'Authorization code must be provided' })
     try {
