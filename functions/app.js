@@ -17,9 +17,8 @@ const config = {
     tokenUrl: 'https://api.login.yahoo.com/oauth2/get_token',
     redirectUrl: process.env.REDIRECT_URL,
     clientUrl: process.env.CLIENT_URL,
-    tokenSecret: process.env.TOKEN_SECRET,
     tokenExpiration: 3600,
-    postUrl: 'https://jsonplaceholder.typicode.com/posts', // TODO get generic yahoo fantasy api url
+    fantasyUrl: 'https://fantasysports.yahooapis.com',
 }
 
 const authParams = `client_id=${config.clientId}&redirect_uri=${config.redirectUrl}&response_type=code&scope=fspt-w`;
@@ -31,18 +30,12 @@ const getTokenParams = (code) => {
 // Resolve CORS
 app.use(
     // TODO FIX THIS TO ACTUALLY ONLY WORK FOR OUR DOMAIN
-    // TODO
-    //  Backend
-    //
     // When your server responds to the request, include the CORS headers specifying the origin from where the request is coming. If you don't care about the origin, specify the * wildcard.
-    //
     // The raw response should include a header like this.
-    //
     // Access-Control-Allow-Origin: *
-
-cors({
+    cors({
         origin: [config.clientUrl],
-        // credentials: true,
+        credentials: true,
     }),
 )
 
@@ -54,10 +47,20 @@ app.use("/.netlify/functions/app", router);
 
 // Verify auth
 const auth = (req, res, next) => {
+    // try {
+    //     const token = req.cookies.token
+    //     if (!token) return res.status(401).json({ message: 'Unauthorized' })
+    //     jwt.verify(token, config.tokenSecret)
+    //     return next()
+    // } catch (err) {
+    //     console.error('Error: ', err)
+    //     res.status(401).json({ message: 'Unauthorized' })
+    // }
     try {
-        const token = req.cookies.token
+        const token = req.header('Authorization')
         if (!token) return res.status(401).json({ message: 'Unauthorized' })
-        jwt.verify(token, config.tokenSecret)
+        // TODO store active tokens? just confirm one exists and let yahoo handle? nothing??
+        // jwt.verify(token, config.tokenSecret)
         return next()
     } catch (err) {
         console.error('Error: ', err)
@@ -65,23 +68,17 @@ const auth = (req, res, next) => {
     }
 }
 
-router.get("/", (req, res) => {
-    res.send("App is running..");
-});
-
-router.get('/auth/url', (_, res) => {
+app.get('/auth/url', (_, res) => {
     res.json({
         url: `${config.authUrl}?${authParams}`,
     })
 })
 
-router.get('/auth/token', async (req, res) => {
+app.get('/auth/token', async (req, res) => {
     const { code } = req.query
     if (!code) return res.status(400).json({ message: 'Authorization code must be provided' })
     try {
-        // Get all parameters needed to hit authorization server
         const tokenParam = getTokenParams(code)
-        // Exchange authorization code for access token (id token is returned here too)
         const {
             data: { access_token },
         } = await axios.post(config.tokenUrl, tokenParam, {
@@ -91,9 +88,8 @@ router.get('/auth/token', async (req, res) => {
             }
         })
         if (!access_token) return res.status(400).json({ message: 'Auth error' })
-        // Set cookies for user
-        res.cookie('token', access_token, { maxAge: config.tokenExpiration, httpOnly: true })
-        // You can choose to store user in a DB instead
+
+        res.cookie('refresh_token', refresh_token, { maxAge: config.tokenExpiration, httpOnly: true })
         res.json({
             access_token,
         })
@@ -104,39 +100,75 @@ router.get('/auth/token', async (req, res) => {
 })
 
 // TODO examine + test/verify it works
-router.get('/auth/logged_in', (req, res) => {
+// router.get('/auth/logged_in', (req, res) => {
+//     try {
+//         const token = req.cookies.token
+//         if (!token) return res.json({ loggedIn: false })
+//
+//         const { user } = jwt.verify(token, config.tokenSecret)
+//         const newToken = jwt.sign({ user }, config.tokenSecret, { expiresIn: config.tokenExpiration })
+//
+//         res.cookie('refresh_token', newToken, { maxAge: config.tokenExpiration, httpOnly: true })
+//         res.json({ loggedIn: true, user })
+//     } catch (err) {
+//         res.json({ loggedIn: false })
+//     }
+// })
+
+// TODO examine + test/verify it works
+// router.post('/auth/logout', (_, res) => {
+//     // clear cookie
+//     res.clearCookie('refresh_token').json({ message: 'Logged out' })
+// })
+
+const parseTeamData = (data) => {
+    const teamsArray = [];
+    let teamCount = data.fantasy_content.users[0].user[1].games[0].game[1].teams.count;
+    let teams = data.fantasy_content.users[0].user[1].games[0].game[1].teams;
+
+    for(let i = 0; i < teamCount; i++){
+        const leagueId = teams[i].team[0][0].team_key.split('.')[2];
+        const teamData = {
+            leagueId: leagueId,
+            name: teams[i].team[0][2].name,
+            imageUrl: teams[i].team[0][5].team_logos[0].team_logo.url,
+        }
+        teamsArray.push(teamData);
+    }
+
+    return teamsArray;
+}
+
+// USER DATA
+app.get('/teams', auth, async (req, res) => {
     try {
-        // Get token from cookie
-        const token = req.cookies.token
-        if (!token) return res.json({ loggedIn: false })
-        const { user } = jwt.verify(token, config.tokenSecret)
-        const newToken = jwt.sign({ user }, config.tokenSecret, { expiresIn: config.tokenExpiration })
-        // Reset token in cookie
-        res.cookie('token', newToken, { maxAge: config.tokenExpiration, httpOnly: true })
-        res.json({ loggedIn: true, user })
+        const access_token = req.header('Authorization');
+        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/users;use_login=1/games;game_keys=nfl/teams?format=json`,
+            {
+                headers: { Authorization: access_token }
+            })
+        res.json( parseTeamData(data) )
     } catch (err) {
-        res.json({ loggedIn: false })
+        console.error('Error: ', err)
     }
 })
 
-// TODO examine + test/verify it works
-router.post('/auth/logout', (_, res) => {
-    // clear cookie
-    res.clearCookie('token').json({ message: 'Logged out' })
-})
-
-// TODO this is placeholder for calls 1-N of yahoo data, config.postUrl will be changed to config.yahooFantasyApi base url
-router.get('/user/posts', auth, async (_, res) => {
+// TODO dynamically get key for current nfl season, for now hardcoded to 423 = 2023 season
+// TODO dynamically get league id(s) for logged in user, for now hardcoded to 32851 = setagles
+router.get('/league', auth, async (_, res) => {
     try {
-        const { data } = await axios.get(config.postUrl)
+        // TODO test call
+        const { data } = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/423.l.32851`)
         res.json({ posts: data?.slice(0, 5) })
     } catch (err) {
         console.error('Error: ', err)
     }
 })
 
-// const PORT = process.env.PORT || 3000
-// app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
-module.exports = app;
-module.exports.handler = serverless(app);
+// TODO find better long-term solution for local testing
+//  (need port + app.get/app.listen for local, need serverless export + router.get for prod due to netlify constraints)
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
+// module.exports = app;
+// module.exports.handler = serverless(app);
 
