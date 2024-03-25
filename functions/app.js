@@ -74,13 +74,13 @@ router.get('/auth/url', (_, res) => {
     })
 })
 
-router.get('/auth/token', async (req, res) => {
+app.get('/auth/token', async (req, res) => {
     const { code } = req.query
     if (!code) return res.status(400).json({ message: 'Authorization code must be provided' })
     try {
         const tokenParam = getTokenParams(code)
         const {
-            data: { access_token },
+            data: { access_token, refresh_token },
         } = await axios.post(config.tokenUrl, tokenParam, {
             headers: {
                 'Authorization': config.header,
@@ -140,7 +140,7 @@ const parseTeamData = (data) => {
 }
 
 // USER DATA
-router.get('/teams', auth, async (req, res) => {
+router.get('/teams', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
         const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/users;use_login=1/games;game_keys=nfl/teams?format=json`,
