@@ -68,13 +68,13 @@ const auth = (req, res, next) => {
     }
 }
 
-app.get('/auth/url', (_, res) => {
+router.get('/auth/url', (_, res) => {
     res.json({
         url: `${config.authUrl}?${authParams}`,
     })
 })
 
-app.get('/auth/token', async (req, res) => {
+router.get('/auth/token', async (req, res) => {
     const { code } = req.query
     if (!code) return res.status(400).json({ message: 'Authorization code must be provided' })
     try {
@@ -140,7 +140,7 @@ const parseTeamData = (data) => {
 }
 
 // USER DATA
-app.get('/teams', auth, async (req, res) => {
+router.get('/teams', auth, async (req, res) => {
     try {
         const access_token = req.header('Authorization');
         const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/users;use_login=1/games;game_keys=nfl/teams?format=json`,
@@ -167,8 +167,8 @@ router.get('/league', auth, async (_, res) => {
 
 // TODO find better long-term solution for local testing
 //  (need port + app.get/app.listen for local, need serverless export + router.get for prod due to netlify constraints)
-const PORT = process.env.PORT || 3000
-app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
-// module.exports = app;
-// module.exports.handler = serverless(app);
+// const PORT = process.env.PORT || 3000
+// app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
+module.exports = app;
+module.exports.handler = serverless(app);
 
