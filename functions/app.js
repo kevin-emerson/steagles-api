@@ -171,7 +171,15 @@ const getFreeAgentData = async (access_token) => {
 
         for(let i = 0; i < playerCount; i++){
             const playerData = {
-                name: players[i].player[0][2].name.full,
+                player_key: players[i].player[0][0].player_key, //761 total
+                player_id: players[i].player[0][1].player_id,
+                first: players[i].player[0][2].name.first,
+                last: players[i].player[0][2].name.last,
+                full: players[i].player[0][2].name.full,
+                player_link: players[i].player[0][3].url,
+                team: players[i].player[0][7].editorial_team_abbr ?? players[i].player[0][8].editorial_team_abbr ?? players[i].player[0][9].editorial_team_abbr,
+                player_image: players[i].player[0][13].image_url ?? players[i].player[0][14].image_url ?? players[i].player[0][15].image_url,
+                primary_position: players[i].player[0][16].primary_position ?? players[i].player[0][17].primary_position ?? players[i].player[0][18].primary_position,
             }
             playerArray.push(playerData);
         }
@@ -188,10 +196,6 @@ router.get('/players/free-agents', async (req, res) => {
         const access_token = req.header('Authorization');
 
         const freeAgents = await getFreeAgentData(access_token)
-        // const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/423.l.32851/players;status=A;sort=AR;start=${start};count=25?format=json`,
-        //     {
-        //         headers: { Authorization: access_token }
-        //     })
         res.json(freeAgents)
     } catch (err) {
         console.error('Error: ', err)
