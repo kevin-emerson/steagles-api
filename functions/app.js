@@ -121,6 +121,8 @@ router.get('/auth/token', async (req, res) => {
 //     res.clearCookie('refresh_token').json({ message: 'Logged out' })
 // })
 
+
+// USER DATA
 const parseTeamData = (data) => {
     const teamsArray = [];
     let teamCount = data.fantasy_content.users[0].user[1].games[0].game[1].teams.count;
@@ -139,7 +141,6 @@ const parseTeamData = (data) => {
     return teamsArray;
 }
 
-// USER DATA
 router.get('/teams', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
@@ -148,6 +149,50 @@ router.get('/teams', async (req, res) => {
                 headers: { Authorization: access_token }
             })
         res.json( parseTeamData(data) )
+    } catch (err) {
+        console.error('Error: ', err)
+    }
+})
+
+// PLAYER DATA FOR SPECIFIC LEAGUE
+const getFreeAgentData = async (access_token) => {
+    const playerArray = [];
+    let start = 0;
+    let foundAllPlayers = false;
+
+    while (foundAllPlayers === false) {
+        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/423.l.32851/players;status=A;sort=AR;start=${start};count=25?format=json`,
+            {
+                headers: { Authorization: access_token }
+            })
+
+        let playerCount = data.fantasy_content.league[1].players.count;
+        let players = data.fantasy_content.league[1].players;
+
+        for(let i = 0; i < playerCount; i++){
+            const playerData = {
+                name: players[i].player[0][2].name.full,
+            }
+            playerArray.push(playerData);
+        }
+
+        if (playerCount < 25 || players.length === 0) foundAllPlayers = true;
+        else start += 25;
+    }
+
+    return playerArray;
+}
+
+router.get('/players/free-agents', async (req, res) => {
+    try {
+        const access_token = req.header('Authorization');
+
+        const freeAgents = await getFreeAgentData(access_token)
+        // const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/423.l.32851/players;status=A;sort=AR;start=${start};count=25?format=json`,
+        //     {
+        //         headers: { Authorization: access_token }
+        //     })
+        res.json(freeAgents)
     } catch (err) {
         console.error('Error: ', err)
     }
