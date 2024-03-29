@@ -63,7 +63,7 @@ const auth = (req, res, next) => {
         // jwt.verify(token, config.tokenSecret)
         return next()
     } catch (err) {
-        console.error('Error: ', err)
+        console.error('Error: ', err.message)
         res.status(401).json({ message: 'Unauthorized' })
     }
 }
@@ -94,7 +94,7 @@ router.get('/auth/token', async (req, res) => {
             access_token,
         })
     } catch (err) {
-        console.error('Error: ', err)
+        console.error('Error: ', err.message)
         res.status(500).json({ message: err.message || 'Server error' })
     }
 })
@@ -151,7 +151,7 @@ router.get('/teams', async (req, res) => {
             })
         res.json( parseTeamData(data) )
     } catch (err) {
-        console.error('Error: ', err)
+        console.error('Error: ', err.message)
     }
 })
 
@@ -200,7 +200,7 @@ router.get('/players/free-agents', async (req, res) => {
         const freeAgents = await getFreeAgentData(access_token, leagueId)
         res.json(freeAgents)
     } catch (err) {
-        console.error('Error: ', err)
+        console.error('Error: ', err.message)
     }
 })
 
