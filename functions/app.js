@@ -59,7 +59,6 @@ const auth = (req, res, next) => {
     try {
         const token = req.header('Authorization')
         if (!token) return res.status(401).json({ message: 'Unauthorized' })
-        // TODO store active tokens? just confirm one exists and let yahoo handle? nothing??
         // jwt.verify(token, config.tokenSecret)
         return next()
     } catch (err) {
@@ -122,8 +121,8 @@ router.get('/auth/token', async (req, res) => {
 // })
 
 
-// USER DATA
-const parseTeamData = (data) => {
+// TEAM DATA
+const parseTeamsData = (data) => {
     const teamsArray = [];
     let teamCount = data.fantasy_content.users[0].user[1].games[0].game[1].teams.count;
     let teams = data.fantasy_content.users[0].user[1].games[0].game[1].teams;
@@ -142,20 +141,105 @@ const parseTeamData = (data) => {
     return teamsArray;
 }
 
-router.get('/teams', async (req, res) => {
+router.get('/user/teams', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
         const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/users;use_login=1/games;game_keys=nfl/teams?format=json`,
             {
                 headers: { Authorization: access_token }
             })
-        res.json( parseTeamData(data) )
+        res.json( parseTeamsData(data) )
     } catch (err) {
         console.error('Error: ', err.message)
     }
 })
 
-// PLAYER DATA FOR SPECIFIC LEAGUE
+// TODO dynamically get key for current nfl season, for now hardcoded to 423 = 2023 season
+// LEAGUE DATA
+const parseLeagueData = (data) => {
+    const leagueData = {
+        leagueId: data.fantasy_content.league[0].league_id,
+        name: data.fantasy_content.league[0].name,
+        url: data.fantasy_content.league[0].url,
+        logo: data.fantasy_content.league[0].logo_url,
+        numTeams: data.fantasy_content.league[0].num_teams,
+        is_finished: data.fantasy_content.league[0].is_finished,
+    }
+
+    return leagueData;
+}
+router.get('/league', async (req, res) => {
+    try {
+        const access_token = req.header('Authorization');
+        const { leagueId } = req.query;
+        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/423.l.${leagueId}?format=json`,
+            {
+                headers: { Authorization: access_token }
+            })
+        res.json( parseLeagueData(data) )
+    } catch (err) {
+        console.error('Error: ', err.message)
+    }
+})
+
+
+const getLeagueTeamData = async (access_token, leagueId, numTeams) => {
+    const teamArray = [];
+    let playerArray = [];
+
+    for(let i = 1; i <= numTeams; i++) {
+        // TODO potential data from this call: division_id, waiver_priority, faab_balance, number_of_moves, number_of_trades, draft_grade, draft_recap_url, felo_score, felo_tier, roster.is_editable
+        const teamData = await axios.get(`${config.fantasyUrl}/fantasy/v2/team/423.l.${leagueId}.t.${i}/roster/players?format=json`,
+            {
+                headers: { Authorization: access_token }
+            })
+
+        const playerCount = teamData.data.fantasy_content.team[1].roster["0"].players.count;
+
+        for(let i = 0; i < playerCount; i++) {
+            const currentPlayer = teamData.data.fantasy_content.team[1].roster["0"].players[i].player[0]
+
+            playerArray.push(
+                {
+                    playerKey: currentPlayer[0].player_key,
+                    playerId: currentPlayer[1].player_id,
+                    name: currentPlayer[2].name.full,
+                    team: currentPlayer[7]?.editorial_team_abbr ?? currentPlayer[8]?.editorial_team_abbr ?? currentPlayer[9]?.editorial_team_abbr,
+                    imageUrl: currentPlayer[13]?.headshot?.url ?? currentPlayer[14]?.headshot?.url ?? currentPlayer[15]?.headshot?.url,
+                    primaryPosition: currentPlayer[16]?.primary_position ?? currentPlayer[17]?.primary_position ?? currentPlayer[18]?.primary_position,
+                    eligiblePositions: currentPlayer[17]?.eligible_positions ?? currentPlayer[18]?.eligible_positions ?? currentPlayer[19]?.eligible_positions,
+                    selectedPosition: teamData.data.fantasy_content.team[1].roster["0"].players[i].player[1].selected_position[1].position
+                }
+            )
+        }
+
+        teamArray.push({
+            teamId: teamData.data.fantasy_content.team[0][1].team_id,
+            teamName: teamData.data.fantasy_content.team[0][2].name,
+            teamLogo: teamData.data.fantasy_content.team[0][5].team_logos[0].team_logo.url,
+            managerId: teamData.data.fantasy_content.team[0][19].managers[0].manager.manager_id,
+            managerName: teamData.data.fantasy_content.team[0][19].managers[0].manager.nickname,
+            players: playerArray
+        })
+
+        playerArray = [];
+    }
+
+    return teamArray;
+}
+
+router.get('/league/teams', async (req, res) => {
+    try {
+        const access_token = req.header('Authorization');
+        const { leagueId, numTeams } = req.query;
+
+        const leagueTeams = await getLeagueTeamData(access_token, leagueId, numTeams)
+        res.json(leagueTeams)
+    } catch (err) {
+        console.error('Error: ', err.message)
+    }
+})
+
 const getFreeAgentData = async (access_token, leagueId) => {
     const playerArray = [];
     let start = 0;
@@ -177,7 +261,7 @@ const getFreeAgentData = async (access_token, leagueId) => {
                 full: players[i].player[0][2].name.full,
                 team: players[i].player[0][7].editorial_team_abbr ?? players[i].player[0][8].editorial_team_abbr ?? players[i].player[0][9].editorial_team_abbr,
                 primary_position: players[i].player[0][16].primary_position ?? players[i].player[0][17].primary_position ?? players[i].player[0][18].primary_position,
-                player_key: players[i].player[0][0].player_key, //761 total
+                player_key: players[i].player[0][0].player_key,
                 player_id: players[i].player[0][1].player_id,
                 player_image: players[i].player[0][13].image_url ?? players[i].player[0][14].image_url ?? players[i].player[0][15].image_url,
                 player_link: players[i].player[0][3].url,
@@ -201,35 +285,6 @@ router.get('/players/free-agents', async (req, res) => {
         res.json(freeAgents)
     } catch (err) {
         console.error('Error: ', err.message)
-    }
-})
-
-// TODO dynamically get key for current nfl season, for now hardcoded to 423 = 2023 season
-// LEAGUE DATA
-
-const parseLeagueData = (data) => {
-    const teamData = {
-        leagueId: data.fantasy_content.league[0].league_id,
-        name: data.fantasy_content.league[0].name,
-        url: data.fantasy_content.league[0].url,
-        logo: data.fantasy_content.league[0].logo_url,
-        numTeams: data.fantasy_content.league[0].num_teams,
-        is_finished: data.fantasy_content.league[0].is_finished,
-    }
-
-    return teamData;
-}
-router.get('/league', async (req, res) => {
-    try {
-        const access_token = req.header('Authorization');
-        const { leagueId } = req.query;
-        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/423.l.${leagueId}?format=json`,
-            {
-                headers: { Authorization: access_token }
-            })
-        res.json( parseLeagueData(data) )
-    } catch (err) {
-        console.error('Error: ', err)
     }
 })
 
