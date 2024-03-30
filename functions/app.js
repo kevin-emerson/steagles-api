@@ -207,7 +207,6 @@ const getLeagueTeamData = async (access_token, leagueId, numTeams) => {
                     team: currentPlayer[7]?.editorial_team_abbr ?? currentPlayer[8]?.editorial_team_abbr ?? currentPlayer[9]?.editorial_team_abbr,
                     imageUrl: currentPlayer[13]?.headshot?.url ?? currentPlayer[14]?.headshot?.url ?? currentPlayer[15]?.headshot?.url,
                     primaryPosition: currentPlayer[16]?.primary_position ?? currentPlayer[17]?.primary_position ?? currentPlayer[18]?.primary_position,
-                    eligiblePositions: currentPlayer[17]?.eligible_positions ?? currentPlayer[18]?.eligible_positions ?? currentPlayer[19]?.eligible_positions,
                     selectedPosition: teamData.data.fantasy_content.team[1].roster["0"].players[i].player[1].selected_position[1].position
                 }
             )
