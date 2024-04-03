@@ -123,28 +123,43 @@ router.get('/auth/token', async (req, res) => {
 
 // TEAM DATA
 const parseTeamsData = (data) => {
-    const teamsArray = [];
-    let teamCount = data.fantasy_content.users[0].user[1].games[0].game[1].teams.count;
-    let teams = data.fantasy_content.users[0].user[1].games[0].game[1].teams;
+    const seasonCount = data.fantasy_content.users[0].user[1].games.count;
+    const seasonsArray = []
 
-    for(let i = 0; i < teamCount; i++){
-        const idArray = teams[i].team[0][0].team_key.split('.')
-        const teamData = {
-            leagueId: idArray[2],
-            teamId: idArray[4],
-            name: teams[i].team[0][2].name,
-            imageUrl: teams[i].team[0][5].team_logos[0].team_logo.url,
+    for(let s = 0; s <seasonCount; s++) {
+        let teamsArray = [];
+        let teamCount = data.fantasy_content.users[0].user[1].games[s].game[1].teams.count;
+        let teams = data.fantasy_content.users[0].user[1].games[s].game[1].teams;
+
+        for(let i = 0; i < teamCount; i++){
+            let idArray = teams[i].team[0][0].team_key.split('.')
+            let teamData = {
+                gameKey: idArray[0],
+                leagueId: idArray[2],
+                teamId: idArray[4],
+                name: teams[i].team[0][2].name,
+                imageUrl: teams[i].team[0][5].team_logos[0].team_logo.url,
+            }
+            teamsArray.push(teamData);
         }
-        teamsArray.push(teamData);
+
+        let seasonData = {
+            year: data.fantasy_content.users[0].user[1].games[s].game[0].season,
+            gameKey: data.fantasy_content.users[0].user[1].games[s].game[0].game_key,
+            teams: teamsArray
+        }
+
+        seasonsArray.push(seasonData)
     }
 
-    return teamsArray;
+
+    return seasonsArray;
 }
 
 router.get('/user/teams', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
-        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/users;use_login=1/games;game_keys=nfl/teams?format=json`,
+        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/users;use_login=1/games;game_codes=nfl/teams?format=json`,
             {
                 headers: { Authorization: access_token }
             })
@@ -154,7 +169,6 @@ router.get('/user/teams', async (req, res) => {
     }
 })
 
-// TODO dynamically get key for current nfl season, for now hardcoded to 423 = 2023 season
 // LEAGUE DATA
 const parseLeagueData = (data) => {
     const leagueData = {
@@ -171,8 +185,8 @@ const parseLeagueData = (data) => {
 router.get('/league', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
-        const { leagueId } = req.query;
-        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/423.l.${leagueId}?format=json`,
+        const { leagueId, gameKey } = req.query;
+        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/${gameKey}.l.${leagueId}?format=json`,
             {
                 headers: { Authorization: access_token }
             })
