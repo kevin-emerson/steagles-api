@@ -197,13 +197,13 @@ router.get('/league', async (req, res) => {
 })
 
 
-const getLeagueTeamData = async (access_token, leagueId, numTeams) => {
+const getLeagueTeamData = async (access_token, leagueId, gameKey, numTeams) => {
     const teamArray = [];
     let playerArray = [];
 
     for(let i = 1; i <= numTeams; i++) {
         // TODO potential data from this call: division_id, waiver_priority, faab_balance, number_of_moves, number_of_trades, draft_grade, draft_recap_url, felo_score, felo_tier, roster.is_editable
-        const teamData = await axios.get(`${config.fantasyUrl}/fantasy/v2/team/423.l.${leagueId}.t.${i}/roster/players?format=json`,
+        const teamData = await axios.get(`${config.fantasyUrl}/fantasy/v2/team/${gameKey}.l.${leagueId}.t.${i}/roster/players?format=json`,
             {
                 headers: { Authorization: access_token }
             })
@@ -244,22 +244,22 @@ const getLeagueTeamData = async (access_token, leagueId, numTeams) => {
 router.get('/league/teams', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
-        const { leagueId, numTeams } = req.query;
+        const { leagueId, gameKey, numTeams } = req.query;
 
-        const leagueTeams = await getLeagueTeamData(access_token, leagueId, numTeams)
+        const leagueTeams = await getLeagueTeamData(access_token, leagueId, gameKey, numTeams)
         res.json(leagueTeams)
     } catch (err) {
         console.error('Error: ', err.message)
     }
 })
 
-const getFreeAgentData = async (access_token, leagueId) => {
+const getFreeAgentData = async (access_token, leagueId, gameKey) => {
     const playerArray = [];
     let start = 0;
     let foundAllPlayers = false;
 
     while (foundAllPlayers === false) {
-        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/423.l.${leagueId}/players;status=A;sort=AR;start=${start};count=25?format=json`,
+        const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/league/${gameKey}.l.${leagueId}/players;status=A;sort=AR;start=${start};count=25?format=json`,
             {
                 headers: { Authorization: access_token }
             })
@@ -292,9 +292,9 @@ const getFreeAgentData = async (access_token, leagueId) => {
 router.get('/players/free-agents', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
-        const { leagueId } = req.query;
+        const { leagueId, gameKey } = req.query;
 
-        const freeAgents = await getFreeAgentData(access_token, leagueId)
+        const freeAgents = await getFreeAgentData(access_token, leagueId, gameKey)
         res.json(freeAgents)
     } catch (err) {
         console.error('Error: ', err.message)
