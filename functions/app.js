@@ -165,7 +165,7 @@ router.get('/user/teams', async (req, res) => {
             })
         res.json( parseTeamsData(data) )
     } catch (err) {
-        console.error('Error: ', err.message)
+        res.json({error: err.message})
     }
 })
 
@@ -178,6 +178,8 @@ const parseLeagueData = (data) => {
         logo: data.fantasy_content.league[0].logo_url,
         numTeams: data.fantasy_content.league[0].num_teams,
         is_finished: data.fantasy_content.league[0].is_finished,
+        renew: data.fantasy_content.league[0].renew,
+        renewed: data.fantasy_content.league[0].renewed,
     }
 
     return leagueData;
@@ -192,7 +194,7 @@ router.get('/league', async (req, res) => {
             })
         res.json( parseLeagueData(data) )
     } catch (err) {
-        console.error('Error: ', err.message)
+        res.json({error: err.message})
     }
 })
 
@@ -246,10 +248,12 @@ router.get('/league/teams', async (req, res) => {
         const access_token = req.header('Authorization');
         const { leagueId, gameKey, numTeams } = req.query;
 
+        if (numTeams < 1) res.status(400).json({error: 'There are no teams in this league'});
+
         const leagueTeams = await getLeagueTeamData(access_token, leagueId, gameKey, numTeams)
         res.json(leagueTeams)
     } catch (err) {
-        console.error('Error: ', err.message)
+        res.json({error: err.message})
     }
 })
 
@@ -264,20 +268,20 @@ const getFreeAgentData = async (access_token, leagueId, gameKey) => {
                 headers: { Authorization: access_token }
             })
 
-        let playerCount = data.fantasy_content.league[1].players.count;
-        let players = data.fantasy_content.league[1].players;
+        let playerCount = data?.fantasy_content?.league[1]?.players?.count;
+        let players = data?.fantasy_content?.league[1]?.players;
 
         for(let i = 0; i < playerCount; i++){
             const playerData = {
-                first: players[i].player[0][2].name.first,
-                last: players[i].player[0][2].name.last,
-                full: players[i].player[0][2].name.full,
-                team: players[i].player[0][7].editorial_team_abbr ?? players[i].player[0][8].editorial_team_abbr ?? players[i].player[0][9].editorial_team_abbr,
-                primary_position: players[i].player[0][16].primary_position ?? players[i].player[0][17].primary_position ?? players[i].player[0][18].primary_position,
-                player_key: players[i].player[0][0].player_key,
-                player_id: players[i].player[0][1].player_id,
-                player_image: players[i].player[0][13].image_url ?? players[i].player[0][14].image_url ?? players[i].player[0][15].image_url,
-                player_link: players[i].player[0][3].url,
+                first: players[i]?.player[0][2]?.name?.first,
+                last: players[i]?.player[0][2]?.name?.last,
+                full: players[i]?.player[0][2]?.name?.full,
+                team: players[i]?.player[0][7]?.editorial_team_abbr ?? players[i]?.player[0][8]?.editorial_team_abbr ?? players[i]?.player[0][9]?.editorial_team_abbr,
+                primary_position: players[i]?.player[0][16]?.primary_position ?? players[i]?.player[0][17]?.primary_position ?? players[i]?.player[0][18]?.primary_position,
+                player_key: players[i]?.player[0][0]?.player_key,
+                player_id: players[i]?.player[0][1]?.player_id,
+                player_image: players[i]?.player[0][13]?.image_url ?? players[i]?.player[0][14]?.image_url ?? players[i]?.player[0][15]?.image_url,
+                player_link: players[i]?.player[0][3]?.url,
             }
             playerArray.push(playerData);
         }
@@ -297,7 +301,7 @@ router.get('/players/free-agents', async (req, res) => {
         const freeAgents = await getFreeAgentData(access_token, leagueId, gameKey)
         res.json(freeAgents)
     } catch (err) {
-        console.error('Error: ', err.message)
+        res.json({error: err.message})
     }
 })
 
