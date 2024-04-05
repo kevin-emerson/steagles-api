@@ -301,6 +301,19 @@ router.get('/players/free-agents', async (req, res) => {
     }
 })
 
+
+app.get('/trust-the-process', async (req, res) => {
+    try {
+        const mockData = {name: "Reese", city: "Windsor", age: "34"};
+        res.json(mockData)
+    } catch (err) {
+        console.error('Error: ', err.message)
+    }
+
+
+})
+
+
 // TODO find better long-term solution for local testing
 //  (need port + app.get/app.listen for local, need serverless export + router.get for prod due to netlify constraints)
 // const PORT = process.env.PORT || 3000
