@@ -153,7 +153,7 @@ const parseTeamsData = (data) => {
     }
 
 
-    return seasonsArray;
+    return seasonsArray.sort((a, b) => (a.year < b.year) ? 1 : -1);
 }
 
 router.get('/user/teams', async (req, res) => {
