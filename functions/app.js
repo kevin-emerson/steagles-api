@@ -67,13 +67,13 @@ const auth = (req, res, next) => {
     }
 }
 
-router.get('/auth/url', (_, res) => {
+app.get('/auth/url', (_, res) => {
     res.json({
         url: `${config.authUrl}?${authParams}`,
     })
 })
 
-router.get('/auth/token', async (req, res) => {
+app.get('/auth/token', async (req, res) => {
     const { code } = req.query
     if (!code) return res.status(400).json({ message: 'Authorization code must be provided' })
     try {
@@ -156,7 +156,7 @@ const parseTeamsData = (data) => {
     return seasonsArray.sort((a, b) => (a.year < b.year) ? 1 : -1);
 }
 
-router.get('/user/teams', async (req, res) => {
+app.get('/user/teams', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
         const { data }  = await axios.get(`${config.fantasyUrl}/fantasy/v2/users;use_login=1/games;game_codes=nfl/teams?format=json`,
@@ -184,7 +184,7 @@ const parseLeagueData = (data) => {
 
     return leagueData;
 }
-router.get('/league', async (req, res) => {
+app.get('/league', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
         const { leagueId, gameKey } = req.query;
@@ -243,7 +243,7 @@ const getLeagueTeamData = async (access_token, leagueId, gameKey, numTeams) => {
     return teamArray;
 }
 
-router.get('/league/teams', async (req, res) => {
+app.get('/league/teams', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
         const { leagueId, gameKey, numTeams } = req.query;
@@ -293,7 +293,7 @@ const getFreeAgentData = async (access_token, leagueId, gameKey) => {
     return playerArray;
 }
 
-router.get('/players/free-agents', async (req, res) => {
+app.get('/players/free-agents', async (req, res) => {
     try {
         const access_token = req.header('Authorization');
         const { leagueId, gameKey } = req.query;
@@ -307,8 +307,8 @@ router.get('/players/free-agents', async (req, res) => {
 
 // TODO find better long-term solution for local testing
 //  (need port + app.get/app.listen for local, need serverless export + router.get for prod due to netlify constraints)
-// const PORT = process.env.PORT || 3000
-// app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
-module.exports = app;
-module.exports.handler = serverless(app);
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`))
+// module.exports = app;
+// module.exports.handler = serverless(app);
 
